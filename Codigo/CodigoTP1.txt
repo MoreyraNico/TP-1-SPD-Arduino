@@ -1,0 +1,268 @@
+// C++ code
+// Contador de 0 a 99 con Display 7 Segmentos y MultiplexaciÃ³n
+
+//Seteo de pines y componentes
+#define B 13
+#define A 12
+#define F 11
+#define G 10
+#define E 9
+#define D 8
+#define C 7
+#define RESETEO 4
+#define ARRIBA 3
+#define ABAJO 2
+#define DISPLAYUNIDAD A4
+#define DISPLAYDECENA A5
+#define APAGADO 0
+#define TIMEDISPLAYDELAY 10
+
+//Declaracion de variables
+int contador=0;
+int arriba=1;
+int arribaAnterior=1;
+int abajo=1;
+int abajoAnterior=1;
+int reseteo=1;
+int reseteoAnterior=1;
+
+//Configuracion de pines, inicializamos componente
+void setup()
+{
+	pinMode(2, INPUT_PULLUP);
+	pinMode(3, INPUT_PULLUP );
+	pinMode(4, INPUT_PULLUP );
+  	pinMode(7, OUTPUT);
+	pinMode(8, OUTPUT);
+	pinMode(9, OUTPUT);
+	pinMode(10, OUTPUT);
+	pinMode(11, OUTPUT);
+	pinMode(12, OUTPUT);
+	pinMode(13, OUTPUT);
+  	pinMode(DISPLAYUNIDAD, OUTPUT);
+	pinMode(DISPLAYDECENA, OUTPUT);
+	digitalWrite(DISPLAYUNIDAD,0);
+	digitalWrite(DISPLAYDECENA,0);
+	ControladorDisplay(0);
+  	Serial.begin(9600);
+  	
+}
+
+// Control de los pulsadores y contadores.
+// Recibe: Toma los datos de la funcion "ControladorPulsadores". Incrementara/disminuira/resetara contadores.
+// Devuelve: Dato del contador para la funcion ControlUnidadDecena
+void loop()
+{
+    int botonpresionado = ControladorPulsadores();// Se le asigna a la variable el resultado del Llamado de funcion, se procesa lo que devolvio la funcion. La orden de ARRIBA,ABAJO o RESETEO dependiendo del pulsador presionado
+	
+  	if(botonpresionado == ARRIBA) //Ejecucion en caso de que se presiono ButtomUp 
+      {
+      contador++;// Se incrementa contador +1
+      if(contador>99)// Controla el contador, en caso de que pase 99 se reseteara en la siguiente linea
+        contador=0; // reseteo de contador en caso de que pase los 99, para que vuelva a contar a 0
+      }
+	else if(botonpresionado == ABAJO)//Ejecucion en caso de que se presiono ButtomUp
+      {
+      contador--; // Decrece el contador -1
+      if(contador<0)// si el contador es menor a 0, lleva la cuenta a 99(limite)
+		contador=99;
+      }
+    
+   	else if(botonpresionado == RESETEO)//Ejecucion en caso de que se presiono ButtomReset
+      {
+      contador=0; // reseteo de contador
+      }
+    
+  	//MultiplexadoCronometro(contadorcronometro);
+	// Llamado de funcion, recibe como parametro el contador.
+	ControlUnidadDecena(contador);
+
+}
+// FUNCION CONTROL DE PULSADORES ------------------------------
+// Recibe: Lees el estado de los pulsadores
+// Devuelve: Identifica que pulsador se presiono, para ser procesados en el loop
+int ControladorPulsadores(void)
+{
+	arriba = digitalRead(ARRIBA); // Al iniciar arriba=1, (OFF), lee la entrada (read)si se presiona arriba=0(ON)
+	abajo = digitalRead(ABAJO); // Al iniciar abajo=1(OFF), si se presiona abajo=0(ON)
+	reseteo = digitalRead(RESETEO); // Al iniciar reseteo=1(OFF), si se presiona reseteo=0(ON)
+	
+  	
+ 	//Se registra estados anteriores para evitar que al presionar cuente de manera corrida
+  	if (arriba==1)		// Control de Flags, Se guarda estado anterior de variable arriba "si no presiono SUBE"
+    	arribaAnterior = 1; // Estado anterior, arribaAnterior=1 (OFF). Para controlar estado anterior
+	if (abajo)			
+    	abajoAnterior = 1;
+  	if (reseteo)
+		reseteoAnterior = 1;
+	
+	
+  	// 	Analiza cual pulsador se presiono,y lo retorna.
+    if (arriba==0 && arriba !=arribaAnterior)// Lectura de pulso del pulsador arriba=0
+        	{
+				arribaAnterior = arriba; //se actualiza el flag arribaAnterior=0
+				return ARRIBA;	   // la funcion devuelve orden de ARRIBA(ON)
+        	}
+	if(abajo==0 && abajo != abajoAnterior) //Lectura de pulso del pulsador baja=0
+        	{
+				abajoAnterior = abajo;	//se actualiza el flag abajoAnterior=0
+				return ABAJO;		// la funcion devuelve orden de ABAJO (ON)
+       		}
+	if(reseteo==0 && reseteo!= reseteoAnterior)//Lectura de pulso del pulsador reseteo=0
+        	{
+				reseteoAnterior = reseteo;//se actualiza el flag reseteoAnterior=0
+				return (RESETEO);		// la funcion devuelve orden de RESETEO (ON)
+        	}
+ 
+	     
+    return 0; // Devuelve 0 cuando esta estatico.
+}
+
+
+// FUNCION CONTROL DE UNIDAD Y DECENAS-------------------------
+// Procesa el dato del contador, para que sea proyectado en los displays
+// Dispara los pulsos para el multiplexado
+void ControlUnidadDecena(int contador)
+{
+	ControladorMultiplexado(APAGADO);//MULTIPLEXADO
+	ControladorDisplay(contador/10); // Contador para display de la Decena, Encendido en 0 (contador=0) me mantiene en 0 hasta que sea 9
+	ControladorMultiplexado(DISPLAYDECENA);//MULTIPLEXADO
+  	ControladorMultiplexado(APAGADO);//MULTIPLEXADO
+	ControladorDisplay(contador - 10*((int)contador/10)); // Contador para display de unidad
+	ControladorMultiplexado(DISPLAYUNIDAD);//MULTIPLEXADO
+}
+
+
+//FUNCION CONTROLADORA DE MULTIPLEXADO ----------------------
+/* Se encarga del multiplexado
+Controla los tiempos de encendido de los display, 
+alternando sus encendidos con un tiempo de delay bajo
+para que sea imperceptible.
+RECIBE: Control. La recibe de ControlUnidadDecena
+DEVUELVE: Void*/
+void ControladorMultiplexado(int control) //MULTIPLEXADO
+{
+	if (control==DISPLAYUNIDAD)
+	{
+		digitalWrite(DISPLAYUNIDAD, LOW); // pongo el comun de unidad en 0  se enciende
+		digitalWrite(DISPLAYDECENA, HIGH); // pongo el comun de decena en 1  se apaga
+		delay(TIMEDISPLAYDELAY);
+	}
+	else if (control == DISPLAYDECENA)
+	{
+		digitalWrite(DISPLAYUNIDAD, HIGH);
+		digitalWrite(DISPLAYDECENA, LOW);
+		delay(TIMEDISPLAYDELAY);
+	}
+	else if (control == APAGADO)
+	{	
+		digitalWrite(DISPLAYUNIDAD, HIGH);
+		digitalWrite(DISPLAYDECENA, HIGH);
+	}
+}
+
+
+// FUNCION CONTROLADOR DE DISPLAYS------------------------------
+// Control de encendido de cada segmento
+void ControladorDisplay(int digit)
+{
+	digitalWrite(A, LOW);
+	digitalWrite(B, LOW);
+	digitalWrite(C, LOW);
+	digitalWrite(D, LOW);
+	digitalWrite(E, LOW);
+	digitalWrite(F, LOW);
+	digitalWrite(G, LOW);
+	switch (digit)
+  	{
+		case 1:
+      {
+			digitalWrite(B, HIGH);
+			digitalWrite(C, HIGH);
+			break;
+      }
+		case 2:
+      {
+			digitalWrite(A, HIGH);
+			digitalWrite(B, HIGH);
+			digitalWrite(D, HIGH);
+			digitalWrite(E, HIGH);
+			digitalWrite(G, HIGH);
+			break;
+      }
+		case 3:
+      {
+			digitalWrite(A, HIGH);
+			digitalWrite(B, HIGH);
+			digitalWrite(C, HIGH);
+			digitalWrite(D, HIGH);
+			digitalWrite(G, HIGH);
+			break;
+      }
+		case 4:
+      {
+			digitalWrite(B, HIGH);
+			digitalWrite(C, HIGH);
+			digitalWrite(F, HIGH);
+			digitalWrite(G, HIGH);
+			break;
+      }
+		case 5:
+      {
+			digitalWrite(A, HIGH);
+			digitalWrite(C, HIGH);
+			digitalWrite(D, HIGH);
+			digitalWrite(F, HIGH);
+			digitalWrite(G, HIGH);
+			break;
+      }
+		case 6:
+      {
+			digitalWrite(A, HIGH);
+			digitalWrite(C, HIGH);
+			digitalWrite(D, HIGH);
+			digitalWrite(E, HIGH);
+			digitalWrite(F, HIGH);
+			digitalWrite(G, HIGH);
+			break;
+      }
+		case 7:
+      {
+			digitalWrite(A, HIGH);
+			digitalWrite(B, HIGH);
+			digitalWrite(C, HIGH);
+			break;
+      }
+		case 8:
+      {
+			digitalWrite(A, HIGH);
+			digitalWrite(B, HIGH);
+			digitalWrite(C, HIGH);
+			digitalWrite(D, HIGH);
+			digitalWrite(E, HIGH);
+			digitalWrite(F, HIGH);
+			digitalWrite(G, HIGH);
+			break;
+      }
+		case 9:
+      {
+			digitalWrite(A, HIGH);
+			digitalWrite(B, HIGH);
+			digitalWrite(C, HIGH);
+			digitalWrite(D, HIGH);
+			digitalWrite(F, HIGH);
+			digitalWrite(G, HIGH);
+			break;
+      }
+		case 0:
+      {
+			digitalWrite(A, HIGH);
+			digitalWrite(B, HIGH);
+			digitalWrite(C, HIGH);
+			digitalWrite(D, HIGH);
+			digitalWrite(E, HIGH);
+			digitalWrite(F, HIGH);
+			break;
+      }
+  }
+}
