@@ -9,7 +9,7 @@ Juan Paredes
 ## Proyecto:
 •	Sensor de temperatura, con display y accionador de motor dc.
 •	Contador de activación por pulsadores. Cuenta números primos y Cuenta de 0 a 99
-![Tinkercad](./img/ContadorBinario.png)
+![Tinkercad](./img/IMG TP2.png)
 
 ## Descripción:
 	Mediante la técnica de accionamiento de un interruptor (tipo slideswitch), podemos usar las dos funciones del circuito:
